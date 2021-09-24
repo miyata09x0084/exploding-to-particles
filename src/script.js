@@ -1,92 +1,115 @@
 import './style.css'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import t from '../static/textures/1.jpg'
 import * as dat from 'dat.gui'
 import testVertexShader from './shaders/test/vertex.glsl'
 import testFragmentShader from './shaders/test/fragment.glsl'
 
-var container;
-var camera, scene, renderer, clock;
-var imageAspect;
 
-container = document.getElementById( 'container' );
+/**
+ * Base
+ */
+// Canvas
+const canvas = document.querySelector('canvas.webgl')
 
-const sizes = {
-    width: window.innerWidth,
-    height: window.innerHeight
-};
+// Scene
+const scene = new THREE.Scene()
 
-camera = new THREE.PerspectiveCamera(
-    70,
-    window.innerWidth/innerHeight,
-    0.001,
-    1000
-);
-camera.position.set(0, 0, 2)
-
-scene = new THREE.Scene();
-clock = new THREE.Clock();
-
-var geometry = new THREE.PlaneBufferGeometry( 1, 1, 10, 10 );
-
-var material = new THREE.ShaderMaterial( {
-    uniforms: {
-        time: { type: "f", value: 1.0 },
+// Material
+const material = new THREE.ShaderMaterial({
+    vertexShader: testVertexShader,
+    fragmentShader: testFragmentShader,
+    uniforms:
+    {
+        time: { type: "f", value: 0 },
+        distorsion: { type: "f", value: 0 },
+        t: { type: "t", value: new THREE.TextureLoader().load(t) },
         progress: { type: "f", value: 0.0 },
         resolution: { type: "v4", value: new THREE.Vector4() },
         mouse: { type: "v2", value: new THREE.Vector2(0, 0) }
-    },
-    vertexShader: testVertexShader,
-    fragmentShader: testFragmentShader
-} );
+    }
+})
 
-var plane = new THREE.Points( geometry, material );
-scene.add( plane );  
+// Geometry
+const geometry = new THREE.PlaneBufferGeometry(480*1.5, 820*1.5 , 480, 820)
 
-renderer = new THREE.WebGLRenderer();
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-renderer.setClearColor(0xeeeeee, 1);
+// Mesh
+const plane = new THREE.Points(geometry, material)
+scene.add(plane)
 
-container.appendChild( renderer.domElement );
-
-onWindowResize();
-window.addEventListener( 'resize', onWindowResize, false );
-
-const mouse = new THREE.Vector2();
-window.addEventListener('mousemove', (e) => {
-    mouse.x = e.pageX / sizes.width - 0.5;
-    mouse.y = - e.pageY / sizes.height + 0.5;
-})  
+/**
+ * Sizes
+ */
+const sizes = {
+    width: window.innerWidth,
+    height: window.innerHeight
+}
 
 var settings = {
-    progress: 0,
-};
-const gui = new dat.GUI();
+    distorsion: 0,
+}
+// Debug
+const gui = new dat.GUI({ width: 340 })
 
-function onWindowResize( event ) {
-
+window.addEventListener('resize', () =>
+{
+    // Update sizes
     sizes.width = window.innerWidth
     sizes.height = window.innerHeight
 
-    renderer.setSize( sizes.width, sizes.height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio), 2)
+    // Update camera
+    camera.aspect = sizes.width / sizes.height
+    camera.updateProjectionMatrix()
 
-}
+    // Update renderer
+    renderer.setSize(sizes.width, sizes.height)
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+})
 
+/**
+ * Camera
+ */
+// Base camera
+const camera = new THREE.PerspectiveCamera(70, sizes.width / sizes.height, 0.001, 5000)
+camera.position.set(0, 0, 1500)
+scene.add(camera)
+
+/**
+ * Renderer
+ */
+const renderer = new THREE.WebGLRenderer({
+    canvas: canvas
+})
+renderer.setSize(sizes.width, sizes.height)
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+renderer.setClearColor(0x000000, 1)
+
+// Controls
 const controls = new OrbitControls(camera, renderer.domElement)
 controls.enableDamping = true
-    
 
-function render() {
+/**
+ * Animate
+ */
+const clock = new THREE.Clock()
 
-    material.uniforms.time.value += clock.getDelta();
+const tick = () =>
+{
+    const elapsedTime = clock.getElapsedTime()
 
-    material.uniforms.progress.value = settings.progress;
-    material.uniforms.mouse.value = mouse;    
+    //Update material
+    material.uniforms.time.value = elapsedTime
+    material.uniforms.distorsion.value = settings.distorsion
 
-    renderer.render( scene, camera );
+    // Update controls
+    controls.update()
 
-    window.requestAnimationFrame(render);
+    // Render
+    renderer.render(scene, camera)
+
+    // Call tick again on the next frame
+    window.requestAnimationFrame(tick)
 }
 
-render();
+tick()
