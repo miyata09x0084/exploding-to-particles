@@ -1,6 +1,7 @@
 uniform float time;
 varying vec2 vUv;
 varying vec3 vPosition;
+uniform float distorsion;
 
 //
 // Description : Array and textureless GLSL 2D/3D/4D simplex
@@ -145,12 +146,13 @@ void main() {
 
     vUv = uv;
 
-    vec3 distorsion = vec3(position.x*2., position.y, 1.)*curlNoise(vec3(
-        position.x*0.02 + time*0.,
-        position.y*0.008,
-        time*0.05
-    ));
-    vec3 finalPosition = position + distorsion;
+    vec3 distorsion1 = vec3(position.x*2., position.y, 1.)*curlNoise(vec3(
+        position.x*0.002 + time*0.1,
+        position.y*0.008 + time*0.1,
+        (position.x + position.y)*0.02
+    ))*distorsion;
+
+    vec3 finalPosition = position + distorsion1;
 
     vec4 mvPosition = modelViewMatrix * vec4(finalPosition, 1.);
     gl_PointSize = 2.;

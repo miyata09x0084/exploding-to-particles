@@ -1,11 +1,15 @@
 import './style.css'
 import * as THREE from 'three'
+
+import {RenderPass} from 'three/examples/jsm/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import {EffectComposer} from 'three/examples/js/postprocessing/EffectComposer';
+
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import t from '../static/textures/1.jpg'
 import * as dat from 'dat.gui'
 import testVertexShader from './shaders/test/vertex.glsl'
 import testFragmentShader from './shaders/test/fragment.glsl'
-
 
 /**
  * Base
@@ -46,12 +50,6 @@ const sizes = {
     height: window.innerHeight
 }
 
-var settings = {
-    distorsion: 0,
-}
-// Debug
-const gui = new dat.GUI({ width: 340 })
-
 window.addEventListener('resize', () =>
 {
     // Update sizes
@@ -89,6 +87,32 @@ renderer.setClearColor(0x000000, 1)
 const controls = new OrbitControls(camera, renderer.domElement)
 controls.enableDamping = true
 
+const settings = {
+    distorsion: 0,
+    bloomThreshold: 0,
+    bloomStrength: 0,
+    bloomRadius: 0
+}
+// Debug
+const gui = new dat.GUI({ width: 340 })
+gui.add(settings, "distorsion", 0, 3, 0.01)
+gui.add(settings, "bloomStrength", 0, 10, 0.01)
+
+const renderScene = new RenderPass( scene, camera)
+const bloomPass = new UnrealBloomPass( 
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    1.5,
+    0.4,
+    0.85
+) 
+bloomPass.threshold = settings.bloomThreshold
+bloomPass.strength = settings.bloomStrength
+bloomPass.radius = settings.bloomRadius
+// composer = new THREE.EffectComposer(renderer)
+// composer.addPass(renderScene)
+// composer.addPass(bloomPass)
+
+
 /**
  * Animate
  */
@@ -101,6 +125,7 @@ const tick = () =>
     //Update material
     material.uniforms.time.value = elapsedTime
     material.uniforms.distorsion.value = settings.distorsion
+    bloomPass.strength = settings.bloomStrength
 
     // Update controls
     controls.update()
